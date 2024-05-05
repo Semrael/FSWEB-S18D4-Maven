@@ -2,21 +2,23 @@ package com.workintech.s18d1.dao;
 
 import com.workintech.s18d1.entity.BreadType;
 import com.workintech.s18d1.entity.Burger;
+import jakarta.transaction.Transactional;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+
+
 
 
 public interface BurgerDao {
     Burger save(Burger burger);
-    Optional<Burger> findById(Integer id);
+    Burger findById(Long id);
     List<Burger> findAll();
-    Set<Burger> findByPrice(Double price);
+    List<Burger> findByPrice(Integer price);
+
+
     List<Burger> findByBreadType(BreadType breadType);
     List<Burger> findByContent(String content);
     Burger update(Burger burger);
-    Burger remove(Integer id);
 
-
+    Burger remove(Long id);
 }

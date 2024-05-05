@@ -2,23 +2,26 @@ package com.workintech.s18d1.dao;
 
 import com.workintech.s18d1.entity.BreadType;
 import com.workintech.s18d1.entity.Burger;
+
+import com.workintech.s18d1.exceptions.BurgerException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.transaction.Transactional;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Set;
-
-import java.util.Optional;
 
 
-@Repository
+
+
+@Slf4j
+@Repository//Spring-boot bu classın bir veri tabanı iletişim classı olduğunu tanıyor
 public class BurgerDaoImpl implements BurgerDao{
-    private EntityManager entityManager;
+    private final EntityManager entityManager;//database ile ilgili anatosyonları kullanmamız için
     @Autowired
     public BurgerDaoImpl(EntityManager entityManager){
         this.entityManager=entityManager;
@@ -27,13 +30,22 @@ public class BurgerDaoImpl implements BurgerDao{
     @Transactional
     @Override
     public Burger save(Burger burger) {
+        log.info("save started");
         entityManager.persist(burger);
+        log.info("save ended");
         return burger;
     }
 
+
+
     @Override
-    public Optional<Burger> findById(Integer id) {
-        return Optional.ofNullable(entityManager.find(Burger.class,id));
+    public Burger findById(Long id) {
+        Burger burger =entityManager.find(Burger.class,id);
+        if(burger==null){
+            throw new BurgerException("Burger not found: "+id,HttpStatus.NOT_FOUND);
+
+        }
+        return burger;
     }
 
     @Override
@@ -44,16 +56,18 @@ public class BurgerDaoImpl implements BurgerDao{
     }
 
     @Override
-    public Set<Burger> findByPrice(Double price) {
-       TypedQuery<Burger> query=entityManager.createQuery("SELECT b FROM Burger b WHERE b.price>:price ORDER BY price DESC" ,Burger.class);
-       query.setParameter("price",price);//price parametresini sorguya ekkledi
-       List<Burger> resultList=query.getResultList();
-       return new Set<>(resultList);
+    public List<Burger> findByPrice(Integer price) {
+        TypedQuery<Burger> query=entityManager.createQuery("SELECT b FROM Burger b WHERE b.price>:price ORDER BY b.price DESC" ,Burger.class);
+        query.setParameter("price",price);//price parametresini sorguya ekkledi
+        return query.getResultList();
+
     }
+
+
 
     @Override
     public List<Burger> findByBreadType(BreadType breadType) {
-        TypedQuery<Burger> query=entityManager.createQuery("Select b From Burger b Where b.breadType=:breadtype",Burger.class);
+        TypedQuery<Burger> query=entityManager.createQuery("Select b From Burger b Where b.breadType=:breadtype ORDER BY b.name",Burger.class);
         query.setParameter("breadType",breadType);
         return query.getResultList();
 
@@ -61,28 +75,33 @@ public class BurgerDaoImpl implements BurgerDao{
 
     @Override
     public List<Burger> findByContent(String content) {
-        TypedQuery<Burger> query=entityManager.createQuery("Select b From Burger b Where LOWER(b.content) LIKE(:content) ",Burger.class);
-        query.setParameter("content","%" +content+"%");
+        TypedQuery<Burger> query=entityManager.createQuery("Select b From Burger b Where LOWER(b.contents) LIKE CONCAT('%',:content,'%') ",Burger.class);
+        query.setParameter("content", content);
         return query.getResultList();
     }
-
-
 
     @Transactional
     @Override
     public Burger update(Burger burger) {
-        return entityManager.merge(burger);
+        return  entityManager.merge(burger);
     }
 
     @Transactional
     @Override
-    public Burger remove(Integer id) {
-        Optional<Burger> burger=findById(id);
-        if(burger.isPresent()){
-            entityManager.remove(burger.get());
-            return  burger.get();
-        }
-        //henüz hazır değil
-        throw new BurgerException("Burger with given id is not exist: "+id, HttpStatus.NOT_FOUND);
+    public Burger remove(Long id) {
+        Burger burger=findById(id);
+        entityManager.remove(burger);
+       return burger;
+
+
     }
+
+
+
+
+
+
+
+
+
 }
